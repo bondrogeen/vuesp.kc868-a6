@@ -1,0 +1,4 @@
+[
+  { "label": "output", "type": "func", "insert": "output(${0},${0})", "detail": "output(pin:num, value?:num) => value:num" },
+  { "label": "input", "type": "func", "insert": "input(${0},${0})", "detail": "input(pin:num) => value:num" }
+]
