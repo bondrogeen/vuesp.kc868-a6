@@ -1,0 +1,24 @@
+{
+  "$schema": "https://vuesp.ru/schema/vuesp-project.json",
+  "name": "vuesp.kc868-a6",
+  "summary": "KinCony KC868-A6 controller with 6 inputs, 6 outputs and RTC support.",
+  "description": "## Vuesp KC868-A6\n\nESP32 firmware for the KinCony KC868-A6 board. Six digital inputs and six relay outputs are handled over I2C, and the onboard RTC is used for timekeeping.\n\nScriptRunner exposes `input` and `output` functions, and the dashboard contains buttons for all six channels. The project includes the standard Vuesp Wi-Fi setup, LittleFS, GPIO and OTA features.",
+  "platforms": [
+    "ESP32"
+  ],
+  "tags": [
+    "kc868",
+    "kincony",
+    "relay",
+    "io",
+    "rtc",
+    "esp32"
+  ],
+  "createdWith": "vuesp-create@1.0.1",
+  "createdAt": "2026-11-09T01:09:04+03:00",
+  "template": {
+    "source": "local",
+    "ref": "local",
+    "commit": "8ebddcfc6f90135d6b2c1532c29eac0fd293f4ae"
+  }
+}
