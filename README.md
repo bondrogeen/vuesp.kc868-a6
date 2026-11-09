@@ -4,6 +4,16 @@ KC868-A6: 6 входов и 6 выходов.
 
 Проект собран на базе шаблона [Vuesp](https://github.com/bondrogeen/vuesp): прошивка PlatformIO + web UI на Vue 3 и `vuesp-components`.
 
+## Документация
+
+Подробное описание платы, распиновка, схема, ScriptRunner и ограничения — в [DOCS.md](./DOCS.md).
+
+## Особенности
+
+- 6 входов и 6 реле через PCF8574 по I2C (`0x22`, `0x24`).
+- RTC DS3231 (`0x68`), 4 ADC и 2 DAC.
+- Функции ScriptRunner `input(pin)` и `output(pin, value)`.
+
 ## Плата и окружение
 
 - PlatformIO env: `esp32`
