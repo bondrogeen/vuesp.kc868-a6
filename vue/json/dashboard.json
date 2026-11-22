@@ -4,9 +4,13 @@
     "name": "input.1",
     "type": "button",
     "icon": "light",
-    "opts": { "disabled": 1 },
-    "args": ["device.input"],
-    "get": "(v & 1 ? 0 : 1)",
+    "opts": {
+      "disabled": 1
+    },
+    "args": [
+      "device.input"
+    ],
+    "get": "(a & 1 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -14,9 +18,13 @@
     "name": "input.2",
     "type": "button",
     "icon": "light",
-    "opts": { "disabled": 1 },
-    "args": ["device.input"],
-    "get": "(v & 2 ? 0 : 1)",
+    "opts": {
+      "disabled": 1
+    },
+    "args": [
+      "device.input"
+    ],
+    "get": "(a & 2 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -24,9 +32,13 @@
     "name": "input.3",
     "type": "button",
     "icon": "light",
-    "opts": { "disabled": 1 },
-    "args": ["device.input"],
-    "get": "(v & 4 ? 0 : 1)",
+    "opts": {
+      "disabled": 1
+    },
+    "args": [
+      "device.input"
+    ],
+    "get": "(a & 4 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -34,9 +46,13 @@
     "name": "input.4",
     "type": "button",
     "icon": "light",
-    "opts": { "disabled": 1 },
-    "args": ["device.input"],
-    "get": "(v & 8 ? 0 : 1)",
+    "opts": {
+      "disabled": 1
+    },
+    "args": [
+      "device.input"
+    ],
+    "get": "(a & 8 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -44,9 +60,13 @@
     "name": "input.5",
     "type": "button",
     "icon": "light",
-    "opts": { "disabled": 1 },
-    "args": ["device.input"],
-    "get": "(v & 16 ? 0 : 1)",
+    "opts": {
+      "disabled": 1
+    },
+    "args": [
+      "device.input"
+    ],
+    "get": "(a & 16 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -54,9 +74,13 @@
     "name": "input.6",
     "type": "button",
     "icon": "light",
-    "opts": { "disabled": 1 },
-    "args": ["device.input"],
-    "get": "(v & 32 ? 0 : 1)",
+    "opts": {
+      "disabled": 1
+    },
+    "args": [
+      "device.input"
+    ],
+    "get": "(a & 32 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -64,9 +88,12 @@
     "name": "output.1",
     "type": "button",
     "icon": "bulb",
-    "args": ["device.output", "device"],
-    "set": "({...a, output: v ? (a.output &= ~1) : (a.output |= 1), command: 2 })",
-    "get": "(v & 1 ? 0 : 1)",
+    "args": [
+      "device.output",
+      "device"
+    ],
+    "set": "({...b, output: v ? (b.output &= ~1) : (b.output |= 1), command: 2 })",
+    "get": "(a & 1 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -74,9 +101,12 @@
     "name": "output.2",
     "type": "button",
     "icon": "bulb",
-    "args": ["device.output", "device"],
-    "set": "({...a, output: v ? (a.output &= ~2) : (a.output |= 2), command: 2 })",
-    "get": "(v & 2 ? 0 : 1)",
+    "args": [
+      "device.output",
+      "device"
+    ],
+    "set": "({...b, output: v ? (b.output &= ~2) : (b.output |= 2), command: 2 })",
+    "get": "(a & 2 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -84,9 +114,12 @@
     "name": "output.3",
     "type": "button",
     "icon": "bulb",
-    "args": ["device.output", "device"],
-    "set": "({...a, output: v ? (a.output &= ~4) : (a.output |= 4), command: 2 })",
-    "get": "(v & 4 ? 0 : 1)",
+    "args": [
+      "device.output",
+      "device"
+    ],
+    "set": "({...b, output: v ? (b.output &= ~4) : (b.output |= 4), command: 2 })",
+    "get": "(a & 4 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -94,9 +127,12 @@
     "name": "output.4",
     "type": "button",
     "icon": "bulb",
-    "args": ["device.output", "device"],
-    "set": "({...a, output: v ? (a.output &= ~8) : (a.output |= 8), command: 2 })",
-    "get": "(v & 8 ? 0 : 1)",
+    "args": [
+      "device.output",
+      "device"
+    ],
+    "set": "({...b, output: v ? (b.output &= ~8) : (b.output |= 8), command: 2 })",
+    "get": "(a & 8 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -104,9 +140,12 @@
     "name": "output.5",
     "type": "button",
     "icon": "bulb",
-    "args": ["device.output", "device"],
-    "set": "({...a, output: v ? (a.output &= ~16) : (a.output |= 16), command: 2 })",
-    "get": "(v & 16 ? 0 : 1)",
+    "args": [
+      "device.output",
+      "device"
+    ],
+    "set": "({...b, output: v ? (b.output &= ~16) : (b.output |= 16), command: 2 })",
+    "get": "(a & 16 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -114,9 +153,12 @@
     "name": "output.6",
     "type": "button",
     "icon": "bulb",
-    "args": ["device.output", "device"],
-    "set": "({...a, output: v ? (a.output &= ~32) : (a.output |= 32), command: 2 })",
-    "get": "(v & 32 ? 0 : 1)",
+    "args": [
+      "device.output",
+      "device"
+    ],
+    "set": "({...b, output: v ? (b.output &= ~32) : (b.output |= 32), command: 2 })",
+    "get": "(a & 32 ? 0 : 1)",
     "getTo": "v ? 'ON' : 'OFF'"
   },
   {
@@ -124,36 +166,47 @@
     "name": "adc.1",
     "type": "info",
     "icon": "therm",
-    "args": ["ports.34.value"]
+    "args": [
+      "ports.34.value"
+    ]
   },
   {
     "id": "ports.35",
     "name": "adc.2",
     "type": "info",
     "icon": "therm",
-    "args": ["ports.35.value"]
+    "args": [
+      "ports.35.value"
+    ]
   },
   {
     "id": "ports.36",
     "name": "adc.3",
     "type": "info",
     "icon": "therm",
-    "args": ["ports.36.value"]
+    "args": [
+      "ports.36.value"
+    ]
   },
   {
     "id": "ports.39",
     "name": "adc.4",
     "type": "info",
     "icon": "therm",
-    "args": ["ports.39.value"]
+    "args": [
+      "ports.39.value"
+    ]
   },
   {
     "id": "ports.25",
     "name": "dac.1",
     "type": "dimmer",
     "icon": "plug",
-    "args": ["ports.25.value", "ports.25"],
-    "set": "({ ...a, value: v, command: 2})",
+    "args": [
+      "ports.26.value",
+      "ports.26"
+    ],
+    "set": "({ ...b, value: v, command: 2})",
     "getTo": "`${(((100 * v) / 255) / 10).toFixed(1)} V`"
   },
   {
@@ -161,8 +214,11 @@
     "name": "dac.2",
     "type": "dimmer",
     "icon": "plug",
-    "args": ["ports.26.value", "ports.26"],
-    "set": "({ ...a, value: v, command: 2})",
+    "args": [
+      "ports.25.value",
+      "ports.25"
+    ],
+    "set": "({ ...b, value: v, command: 2})",
     "getTo": "`${(((100 * v) / 255) / 10).toFixed(1)} V`"
   },
   {
@@ -170,8 +226,22 @@
     "name": "now",
     "type": "date",
     "icon": "timer",
-    "args": ["device.now", "device"],
-    "set": "({...a, now: v,command: 1 })",
+    "args": [
+      "device.now",
+      "device"
+    ],
+    "set": "({...b, now: v,command: 1 })",
     "getTo": "new Date(v * 1000).toLocaleDateString()"
+  },
+  {
+    "id": "vars.relay1",
+    "name": "relay-x2.1",
+    "type": "button",
+    "icon": "bulb",
+    "args": [
+      "vars.relay1.value"
+    ],
+    "getTo": "v ? 'ON' : 'OFF'",
+    "set": "({ key: KEY.MODBUS, command: CMD.WRITE, point: 0, value: v ? 1 : 0 })"
   }
 ]

@@ -7,6 +7,7 @@
 #include "./gpio/gpio.h"
 #include "./runner/runner.h"
 
+// KC868-A6: PCF8574 inputs/outputs and DS3231 RTC.
 #define GPIO_SDA 4
 #define GPIO_SCL 15
 
@@ -30,11 +31,17 @@
 
 #define PORTS_LEN 6
 
+extern Device device;
+
 void setupDevice();
 void setupFirstDevice();
+void setOutput();
+void getInput();
+void getOutput();
+void getData();
+void onSendDevice();
 void deviceGPIO(Port* port, uint8_t type);
 void loopDevice(uint32_t now);
-void sendDeviceTo(uint32_t clientId);
 void onWsEventDevice(void* arg, uint8_t* data, size_t len, uint32_t clientId, uint8_t task);
 
 #endif

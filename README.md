@@ -2,7 +2,7 @@
 
 KC868-A6: 6 входов и 6 выходов.
 
-Проект собран на базе шаблона [Vuesp](https://github.com/bondrogeen/vuesp): прошивка PlatformIO + web UI на Vue 3 и `vuesp-components`.
+Проект собран на базе [Vuesp](https://github.com/bondrogeen/vuesp) (шаблон `5f4e625`): прошивка **5.0.14** PlatformIO + web UI **4.1.2** на Vue 3 и `vuesp-components@5.2.1`.
 
 ## Документация
 
@@ -11,8 +11,11 @@ KC868-A6: 6 входов и 6 выходов.
 ## Особенности
 
 - 6 входов и 6 реле через PCF8574 по I2C (`0x22`, `0x24`).
-- RTC DS3231 (`0x68`), 4 ADC и 2 DAC.
-- Функции ScriptRunner `input(pin)` и `output(pin, value)`.
+- RTC DS3231 (`0x68`), 4 ADC и 2 DAC, RS485 (MAX13487EESA), RS232 (SP3232EEN), SPI-интерфейс LoRa SX1278/nRF24L01.
+- Функции ScriptRunner `input(pin)`, `output(pin, value)`, `var()` и `modbus()`.
+- Modbus RTU slave/master на RS485 (MAX13487EESA, TX27/RX14, без DE).
+- Настройки устройства и портов — в `ConfigStore` (`/tmp/config.bin`), протокол — `src/const/protocol.h`.
+- Диагностика загрузки и loop-метрик, текущий шаблон web UI.
 
 ## Плата и окружение
 
@@ -26,6 +29,7 @@ KC868-A6: 6 входов и 6 выходов.
 ```bash
 cd vue
 npm ci
+npm run protocol
 npm run build-web
 ```
 

@@ -1,25 +1,66 @@
 #include "./gpio.h"
 
-Port ports[10] = {
-    {KEY_PORT, GPIO_HT1, 0, GPIO_MODE_ONEWIRE, GPIO_INTERRUPT_OFF, GPIO_BIT_ALL_NOT_DAC, GPIO_DISABLED_OFF},
-    {KEY_PORT, GPIO_HT2, 0, GPIO_MODE_INPUT, GPIO_INTERRUPT_OFF, GPIO_BIT_ALL_NOT_DAC, GPIO_DISABLED_OFF},
-    {KEY_PORT, GPIO_IO13, 0, GPIO_MODE_INPUT_PULLUP, GPIO_INTERRUPT_CHANGE, GPIO_BIT_INPUT_PULLUP, GPIO_DISABLED_ON},
-    {KEY_PORT, GPIO_IO12, 0, GPIO_MODE_INPUT, GPIO_INTERRUPT_OFF, GPIO_BIT_ALL_NOT_DAC, GPIO_DISABLED_OFF},
-    {KEY_PORT, GPIO_DAC1, 0, GPIO_MODE_DAC, GPIO_INTERRUPT_OFF, GPIO_BIT_DAC, GPIO_DISABLED_OFF},
-    {KEY_PORT, GPIO_DAC2, 0, GPIO_MODE_DAC, GPIO_INTERRUPT_OFF, GPIO_BIT_DAC, GPIO_DISABLED_OFF},
-    {KEY_PORT, GPIO_ADC1, 0, GPIO_MODE_ADC, GPIO_INTERRUPT_OFF, GPIO_BIT_ADC, GPIO_DISABLED_OFF},
-    {KEY_PORT, GPIO_ADC2, 0, GPIO_MODE_ADC, GPIO_INTERRUPT_OFF, GPIO_BIT_ADC, GPIO_DISABLED_OFF},
-    {KEY_PORT, GPIO_ADC3, 0, GPIO_MODE_ADC, GPIO_INTERRUPT_OFF, GPIO_BIT_ADC, GPIO_DISABLED_OFF},
-    {KEY_PORT, GPIO_ADC4, 0, GPIO_MODE_ADC, GPIO_INTERRUPT_OFF, GPIO_BIT_ADC, GPIO_DISABLED_OFF},
+#include <string.h>
+
+#include "../config/ConfigStore.h"
+
+#if defined(ESP8266)
+Port ports[6] = {
+    {KEY_PORT, 4, 0, PORT_INPUT_PULLUP, GPIO_INTERRUPT_CHANGE, PORT_ALL_NOT_DAC_AND_ADC, GPIO_DISABLED_OFF, GPIO_EVENT_ON},
+    {KEY_PORT, 5, 0, PORT_INPUT_PULLUP, GPIO_INTERRUPT_CHANGE, PORT_ALL_NOT_DAC_AND_ADC, GPIO_DISABLED_OFF, GPIO_EVENT_ON},
+    {KEY_PORT, 12, 0, PORT_OUTPUT, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC_AND_ADC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 13, 255, PORT_PWM, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC_AND_ADC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 14, 0, PORT_PWM, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC_AND_ADC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 17, 0, PORT_ADC, GPIO_INTERRUPT_OFF, PORT_ADC, GPIO_DISABLED_ON},
 };
+#elif defined(ARDUINO_ESP32C3_DEV)
+Port ports[5] = {
+    {KEY_PORT, 0, 0, PORT_PWM, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC, GPIO_DISABLED_ON},
+    {KEY_PORT, 1, 0, PORT_PWM, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC, GPIO_DISABLED_ON},
+    {KEY_PORT, 2, 0, PORT_PWM, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC, GPIO_DISABLED_ON},
+    {KEY_PORT, 3, 0, PORT_PWM, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC, GPIO_DISABLED_ON},
+    {KEY_PORT, 4, 0, PORT_PWM, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC, GPIO_DISABLED_ON},
+};
+#elif defined(ESP32)
+Port ports[10] = {
+    {KEY_PORT, 13, 0, PORT_INPUT_PULLUP, GPIO_INTERRUPT_CHANGE, PORT_INPUT_PULLUP, GPIO_DISABLED_ON},
+    {KEY_PORT, 12, 0, PORT_INPUT, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 25, 0, PORT_DAC, GPIO_INTERRUPT_OFF, PORT_DAC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 26, 0, PORT_DAC, GPIO_INTERRUPT_OFF, PORT_DAC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 32, 0, PORT_ONEWIRE, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 33, 0, PORT_INPUT, GPIO_INTERRUPT_OFF, PORT_ALL_NOT_DAC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 34, 0, PORT_ADC, GPIO_INTERRUPT_OFF, PORT_ADC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 35, 0, PORT_ADC, GPIO_INTERRUPT_OFF, PORT_ADC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 36, 0, PORT_ADC, GPIO_INTERRUPT_OFF, PORT_ADC, GPIO_DISABLED_OFF},
+    {KEY_PORT, 39, 0, PORT_ADC, GPIO_INTERRUPT_OFF, PORT_ADC, GPIO_DISABLED_OFF},
+};
+#endif
 
 OneWire* ds = nullptr;
 Fade fade;
 Dallas ht1 = {KEY_DALLAS};
-Dallas dallasList[MAX_DALLAS_SENSORS];
+DallasSensor dallasSensors[8];
 uint8_t dallasCount = 0;
 
 int ports_len = sizeof(ports) / sizeof(ports[0]);
+
+static constexpr size_t PORTS_MAX = sizeof(ports) / sizeof(ports[0]);
+
+struct PortsBlob {
+  uint8_t count;
+  Port ports[PORTS_MAX];
+} __attribute__((packed));
+
+static PortsBlob portsBlob;
+
+static void sanitizePort(Port& port) {
+  port.command = 0;
+  port.isPressed = 0;
+  port.count = 0;
+  port.empty = 0;
+  port.valueOld = 0;
+  port.pressStart = 0;
+}
 
 volatile uint8_t btnStatus = 0;
 uint8_t timeDebounce = 0;
@@ -34,9 +75,22 @@ void ICACHE_RAM_ATTR btnIsr() {
   btnStatus = 1;
 }
 
+uint8_t pinModeOf(uint8_t mode) {
+  switch (mode) {
+    case PORT_OUTPUT:
+      return OUTPUT;
+    case PORT_INPUT_PULLUP:
+      return INPUT_PULLUP;
+    case PORT_OUTPUT_OPEN_DRAIN:
+      return OUTPUT_OPEN_DRAIN;
+    default:
+      return INPUT;
+  }
+}
+
 void initGPIO() {
   for (uint8_t i = 0; i < ports_len; i++) {
-    if (ports[i].mode == GPIO_MODE_ONEWIRE) {
+    if (ports[i].mode == PORT_ONEWIRE) {
       if (!isOneWire) {
         if (ds) delete ds;
         ds = new OneWire(ports[i].gpio);
@@ -44,20 +98,24 @@ void initGPIO() {
       }
       continue;
     }
-    if (ports[i].mode == GPIO_MODE_PWM) {
+    if (ports[i].mode == PORT_PWM) {
       pinMode(ports[i].gpio, OUTPUT);
       analogWrite(ports[i].gpio, ports[i].value);
-    } else if (ports[i].mode == GPIO_MODE_ADC) {
+    } else if (ports[i].mode == PORT_ADC) {
       pinMode(ports[i].gpio, INPUT);
       ports[i].value = analogRead(ports[i].gpio);
       isADC = 1;
+    } else if (ports[i].mode == PORT_DAC) {
+#if defined(ESP32) && !defined(ARDUINO_ESP32C3_DEV)
+      dacWrite(ports[i].gpio, ports[i].value);
+#endif
     } else {
-      pinMode(ports[i].gpio, ports[i].mode);
-      if (ports[i].mode == OUTPUT || ports[i].mode == OUTPUT_OPEN_DRAIN) digitalWrite(ports[i].gpio, ports[i].value);
+      pinMode(ports[i].gpio, pinModeOf(ports[i].mode));
+      if (ports[i].mode == PORT_OUTPUT || ports[i].mode == PORT_OUTPUT_OPEN_DRAIN) digitalWrite(ports[i].gpio, ports[i].value);
 
       ports[i].value = digitalRead(ports[i].gpio);
       ports[i].valueOld = ports[i].value;
-      if ((ports[i].mode == INPUT || ports[i].mode == INPUT_PULLUP) && ports[i].interrupt) {
+      if ((ports[i].mode == PORT_INPUT || ports[i].mode == PORT_INPUT_PULLUP) && ports[i].interrupt) {
         attachInterrupt(digitalPinToInterrupt(ports[i].gpio), btnIsr, ports[i].interrupt);
       }
     }
@@ -66,8 +124,8 @@ void initGPIO() {
 
 void getAll() {
   for (int i = 0; i < ports_len; i++) {
-    if (ports[i].mode == GPIO_MODE_PWM || ports[i].mode == GPIO_MODE_ONEWIRE || ports[i].mode == GPIO_MODE_DAC) {
-    } else if (ports[i].mode == GPIO_MODE_ADC) {
+    if (ports[i].mode == PORT_PWM || ports[i].mode == PORT_ONEWIRE || ports[i].mode == PORT_DAC) {
+    } else if (ports[i].mode == PORT_ADC) {
       ports[i].value = analogRead(ports[i].gpio);
     } else {
       ports[i].value = digitalRead(ports[i].gpio);
@@ -78,7 +136,7 @@ void getAll() {
 
 void getADC() {
   for (int i = 0; i < ports_len; i++) {
-    if (ports[i].mode == GPIO_MODE_ADC) {
+    if (ports[i].mode == PORT_ADC) {
       ports[i].value = analogRead(ports[i].gpio);
       wsSendAll((uint8_t*)&ports[i], sizeof(ports[i]));
     }
@@ -105,10 +163,10 @@ void updatePort(uint8_t gpio, uint16_t value) {
 }
 
 void setValue(uint8_t gpio, uint16_t value, uint8_t mode) {
-  if (mode == GPIO_MODE_PWM) {
+  if (mode == PORT_PWM) {
     analogWrite(gpio, value);
   } else {
-    if (!(mode == INPUT || mode == INPUT_PULLUP)) digitalWrite(gpio, value);
+    if (!(mode == PORT_INPUT || mode == PORT_INPUT_PULLUP)) digitalWrite(gpio, value);
   }
 }
 
@@ -133,11 +191,14 @@ uint16_t getValue(uint8_t gpio, uint16_t& value) {
 
 void setValueUpdate() {
   setValue(port.gpio, port.value, port.mode);
-  if (port.mode == GPIO_MODE_PWM || port.mode == GPIO_MODE_ONEWIRE) {
-  } else if (port.mode == GPIO_MODE_ADC) {
+  if (port.mode == PORT_PWM || port.mode == PORT_ONEWIRE) {
+  } else if (port.mode == PORT_ADC) {
     port.value = analogRead(port.gpio);
-  } else if (port.mode == GPIO_MODE_DAC) {
+  } else if (port.mode == PORT_DAC) {
+#if defined(ARDUINO_ESP32C3_DEV)
+#elif defined(ESP32)
     dacWrite(port.gpio, port.value);
+#endif
   } else {
     port.value = digitalRead(port.gpio);
   }
@@ -146,7 +207,7 @@ void setValueUpdate() {
 
 void loopInterrupt(uint32_t now) {
   for (int i = 0; i < ports_len; i++) {
-    if (!(ports[i].mode == INPUT || ports[i].mode == INPUT_PULLUP) && !ports[i].interrupt) continue;
+    if (!(ports[i].mode == PORT_INPUT || ports[i].mode == PORT_INPUT_PULLUP) && !ports[i].interrupt) continue;
     uint32_t time = now - ports[i].pressStart;
     if (time > REPEAT_START_TIME) {
       if (ports[i].isPressed && ports[i].count == 1) {
@@ -181,7 +242,7 @@ void loopInterrupt(uint32_t now) {
 
 void checkInterrupt(uint32_t now) {
   for (int i = 0; i < ports_len; i++) {
-    if (!(ports[i].mode == INPUT || ports[i].mode == INPUT_PULLUP) && !ports[i].interrupt) continue;
+    if (!(ports[i].mode == PORT_INPUT || ports[i].mode == PORT_INPUT_PULLUP) && !ports[i].interrupt) continue;
 
     port = ports[i];
     port.value = digitalRead(port.gpio);
@@ -213,32 +274,33 @@ float getTemperature(uint8_t* address1) {
   return (float)temp / 16.0;
 }
 
-static void scanDallas(bool broadcast) {
+void findDallas() {
   if (!ds) return;
 
-  dallasCount = 0;
-  while (ds->search(ht1.address) == 1) {
+  ds->reset_search();
+  uint8_t found = 0;
+  while (found < 8 && ds->search(ht1.address) == 1) {
     ht1.temp = getTemperature(ht1.address);
-    if (dallasCount < MAX_DALLAS_SENSORS) {
-      dallasList[dallasCount++] = ht1;
+    wsSendAll((uint8_t*)&ht1, sizeof(ht1));
+
+    memcpy(dallasSensors[found].address, ht1.address, sizeof(ht1.address));
+    dallasSensors[found].temp = ht1.temp;
+    dallasSensors[found].valid = 1;
+    found++;
+  }
+
+  for (uint8_t i = found; i < dallasCount; i++) dallasSensors[i].valid = 0;
+  dallasCount = found;
+
+  // Stable indices for local slave points: OneWire search order is not guaranteed.
+  for (uint8_t i = 0; i < found; i++) {
+    for (uint8_t j = i + 1; j < found; j++) {
+      if (memcmp(dallasSensors[i].address, dallasSensors[j].address, 8) > 0) {
+        const DallasSensor swap = dallasSensors[i];
+        dallasSensors[i] = dallasSensors[j];
+        dallasSensors[j] = swap;
+      }
     }
-    if (broadcast) wsSendAll((uint8_t*)&ht1, sizeof(ht1));
-  }
-}
-
-void findDallas() {
-  scanDallas(true);
-}
-
-void sendPortSnapshot(uint32_t clientId) {
-  for (int i = 0; i < ports_len; i++) {
-    wsSendTo(clientId, (uint8_t*)&ports[i], sizeof(ports[i]));
-  }
-}
-
-void sendDallasSnapshot(uint32_t clientId) {
-  for (uint8_t i = 0; i < dallasCount; i++) {
-    wsSendTo(clientId, (uint8_t*)&dallasList[i], sizeof(dallasList[i]));
   }
 }
 
@@ -278,11 +340,27 @@ void setupGPIO() {
 }
 
 void setupFirstGPIO() {
-  if (!loadConfigBlock(DEF_PATH_GPIO, (uint8_t*)ports, sizeof(ports))) {
-    saveConfigBlock(DEF_PATH_GPIO, (uint8_t*)ports, sizeof(ports));
+  const TConfigStatus status =
+      configStore.read("ports", &portsBlob, sizeof(portsBlob), CONFIG_PORTS_VERSION);
+  if (status == TConfigStatus::Ok && portsBlob.count <= PORTS_MAX) {
+    for (uint8_t i = 0; i < portsBlob.count; i++) {
+      Port saved = portsBlob.ports[i];
+      sanitizePort(saved);
+
+      for (int j = 0; j < ports_len; j++) {
+        if (ports[j].gpio == saved.gpio) {
+          ports[j] = saved;
+          break;
+        }
+      }
+    }
   }
+#if VUESP_LOG_LEVEL >= 1
+  else if (status != TConfigStatus::NotFound) {
+    Serial.printf("[config] ports read: %d\n", (int)status);
+  }
+#endif
   initGPIO();
-  scanDallas(false);
 }
 
 void loopGPIO(uint32_t now) {
@@ -315,11 +393,25 @@ void loopGPIO(uint32_t now) {
   }
 
   if (tasks[KEY_PORT]) {
-    if (port.command == GPIO_COMMAND_SAVE) saveConfigBlock(DEF_PATH_GPIO, (uint8_t*)ports, sizeof(ports));
-    if (port.command == GPIO_COMMAND_SET) setValueUpdate();
+    if (port.command == CMD_SAVE) {
+      portsBlob.count = (uint8_t)ports_len;
+      for (int i = 0; i < ports_len; i++) {
+        portsBlob.ports[i] = ports[i];
+        sanitizePort(portsBlob.ports[i]);
+      }
+      const TConfigStatus status =
+          configStore.write("ports", &portsBlob, 1 + (size_t)ports_len * sizeof(Port),
+                            CONFIG_PORTS_VERSION);
+#if VUESP_LOG_LEVEL >= 1
+      if (status != TConfigStatus::Ok) {
+        Serial.printf("[config] ports write: %d\n", (int)status);
+      }
+#endif
+    }
+    if (port.command == CMD_SET) setValueUpdate();
 
-    if (port.command == GPIO_COMMAND_GET_ALL) getAll();
-    if (port.command == GPIO_COMMAND_CHANGE) updatePort();
+    if (port.command == CMD_GET_ALL) getAll();
+    if (port.command == CMD_CHANGE) updatePort();
     port.command = 0;
     tasks[KEY_PORT] = 0;
   };

@@ -1,17 +1,12 @@
 #include "./device.h"
 
-#include <Wire.h>
+#include "../config/ConfigStore.h"
 
 UnixTime stamp(0);
 
-// DDS6619 sinotimer = {KEY_DDS6619, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+Buffer myBuffer = {KEY_BUFFER};
 
-Device device = {
-    KEY_DEVICE,
-    0,
-    0,
-    255,
-};
+Device device = {KEY_DEVICE, 0, 0, 255, 100, 1760640900, 2, "text"};
 
 uint32_t lastTimeDevice = 0;
 uint32_t lastLoopInput = 0;
@@ -34,28 +29,16 @@ PortDevice portsDevice[PORTS_LEN] = {
     {0, 0, 0, 0, 0},
 };
 
-Buffer myBuffer = {KEY_BUFFER};
-
-// CircularBuffer<int8_t, 256> buffer(myBuffer);
-
 void onWsEventDevice(void* arg, uint8_t* data, size_t len, uint32_t clientId, uint8_t task) {
-  if (!arg || !data || len != sizeof(device)) return;
-
   AwsFrameInfo* info = (AwsFrameInfo*)arg;
   if (task == KEY_DEVICE && info->len == sizeof(device)) {
     memcpy(&device, data, sizeof(device));
   }
-  // if (task == KEY_MODBUS && info->len == sizeof(modbus)) {
-  //   memcpy(&modbus, data, sizeof(modbus));
-  // }
 }
 
 void onSendDevice() {
   wsSendAll((uint8_t*)&device, sizeof(device));
 }
-// void onSendModbus() {
-//   wsSendAll((uint8_t*)&modbus, sizeof(modbus));
-// }
 
 void getInput() {
   Wire.requestFrom(ADDRESS_INPUT, 1);
@@ -100,60 +83,31 @@ void setDate(uint32_t unixTime) {
 }
 
 uint32_t getDate() {
-  uint32_t unixTime = 0;
   Wire.beginTransmission(ADDRESS_RTC);
   Wire.write(0);
   Wire.endTransmission(true);
 
   Wire.requestFrom(ADDRESS_RTC, 7);
-  uint8_t second = bcdToDec(Wire.read());
-  uint8_t minute = bcdToDec(Wire.read());
-  uint8_t hour = bcdToDec(Wire.read() & 0b111111);  // 24 hour time
-  uint8_t weekDay = bcdToDec(Wire.read());          // 0-6 -> Sunday - Saturday
-  uint8_t monthDay = bcdToDec(Wire.read());
-  uint8_t month = bcdToDec(Wire.read());
-  uint8_t year = bcdToDec(Wire.read());
+  if (Wire.available() < 7) return device.now;
 
+  const uint8_t second = bcdToDec(Wire.read());
+  const uint8_t minute = bcdToDec(Wire.read());
+  const uint8_t hour = bcdToDec(Wire.read() & 0b111111);
+  const uint8_t weekDay = bcdToDec(Wire.read());
+  const uint8_t monthDay = bcdToDec(Wire.read());
+  const uint8_t month = bcdToDec(Wire.read());
+  const uint8_t year = bcdToDec(Wire.read());
+
+  (void)weekDay;
   stamp.setDateTime(2000 + year, month, monthDay, hour, minute, second);
-  unixTime = stamp.getUnix();
-  device.now = unixTime;
-  return unixTime;
+  device.now = stamp.getUnix();
+  return device.now;
 }
 
 void getGPIO() {
   getInput();
   onSendDevice();
 }
-
-void scan() {
-  byte error, address;
-  int nDevices;
-  nDevices = 0;
-  for (address = 1; address < 127; address++) {
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.print("I2C device found at address 0x");
-      if (address < 16) Serial.print("0");
-      Serial.print(address, HEX);
-      Serial.println("  !");
-
-      nDevices++;
-    } else if (error == 4) {
-      Serial.print("Unknown error at address 0x");
-      if (address < 16) Serial.print("0");
-      Serial.println(address, HEX);
-    }
-  }
-  if (nDevices == 0)
-    Serial.println("No I2C devices found\n");
-  else
-    Serial.println("done\n");
-}
-
-// I2C device found at address 0x22  !
-// I2C device found at address 0x24  !
-// I2C device found at address 0x68  !
 
 void getData() {
   getInput();
@@ -163,7 +117,7 @@ void getData() {
 
 void loopInput(uint32_t now) {
   for (int i = 0; i < PORTS_LEN; i++) {
-    uint32_t time = now - portsDevice[i].pressStart;
+    const uint32_t time = now - portsDevice[i].pressStart;
 
     if (time > REPEAT_START_TIME) {
       if (portsDevice[i].isPressed && portsDevice[i].count == 1) {
@@ -189,7 +143,7 @@ void loopInput(uint32_t now) {
 
 void findPort() {
   for (uint8_t i = 0; i < PORTS_LEN; i++) {
-    uint8_t valueNew = (device.input & (1 << i)) != 0;
+    const uint8_t valueNew = (device.input & (1 << i)) != 0;
     if (portsDevice[i].value != valueNew) {
       portsDevice[i].isPressed = portsDevice[i].valueOld != valueNew;
       if (portsDevice[i].isPressed) {
@@ -197,18 +151,14 @@ void findPort() {
         portsDevice[i].pressStart = millis();
       }
       portsDevice[i].value = valueNew;
-      // scriptRunner.emitEvent("port", 2, i, portsDevice[i].value);
     }
   }
 }
 
-void sendDeviceTo(uint32_t clientId) {
-  wsSendTo(clientId, (uint8_t*)&device, sizeof(device));
-}
-
-// only port.interrupt == GPIO_INTERRUPT_CHANGE
+// GPIO13 is the board's interrupt input; it mirrors PCF8574 inputs.
 void deviceGPIO(Port* port, uint8_t type) {
-  if (port->gpio == 13 && port->value == 0) {
+  (void)type;
+  if (port->gpio == GPIO_IO13 && port->value == 0) {
     getInput();
     findPort();
     onSendDevice();
@@ -216,6 +166,60 @@ void deviceGPIO(Port* port, uint8_t type) {
 }
 
 static char displayBuffer[65] = "5";
+
+bool dataProvider(const char* id, DataKind kind, DataValue& value, bool write) {
+#if VUESP_LOG_LEVEL >= 3
+  Serial.print(id);
+  Serial.print(write ? "WRITE" : "READ");
+  Serial.print(" kind=");
+  Serial.println(kind);
+#endif
+
+  if (strcmp(id, "$display") == 0) {
+    if (write) {
+      if (kind == KIND_STRING) {
+        char buf[65];
+        uint8_t len = value.stringVal.len;
+        if (len > 64) len = 64;
+        strncpy(buf, (char*)value.stringVal.data, len);
+        buf[len] = '\0';
+        strcpy(displayBuffer, buf);
+#if VUESP_LOG_LEVEL >= 3
+        Serial.print("DISPLAY: ");
+        Serial.println(buf);
+#endif
+      } else if (kind == KIND_INT) {
+        snprintf(displayBuffer, sizeof(displayBuffer), "%d", value.intVal);
+      } else if (kind == KIND_UINT) {
+        snprintf(displayBuffer, sizeof(displayBuffer), "%u", value.uintVal);
+      } else if (kind == KIND_FLOAT) {
+        snprintf(displayBuffer, sizeof(displayBuffer), "%.2f", value.floatVal);
+      }
+      return true;
+    }
+
+    if (kind == KIND_STRING) {
+      value.stringVal.data = (uint8_t*)displayBuffer;
+      value.stringVal.len = strlen(displayBuffer);
+    } else if (kind == KIND_INT) {
+      value.intVal = atoi(displayBuffer);
+    } else if (kind == KIND_UINT) {
+      value.uintVal = (uint32_t)atoi(displayBuffer);
+    } else if (kind == KIND_FLOAT) {
+      value.floatVal = atof(displayBuffer);
+    }
+    return true;
+  }
+  return false;
+}
+
+bool httpHandler(uint8_t paramCount, const Value* params, Value& result, void* userData) {
+  if (paramCount < 2) return false;
+
+  result.type = VAL_INT;
+  result.intVal = 200;
+  return true;
+}
 
 bool inputHandler(uint8_t paramCount, const Value* params, Value& result, void* userData) {
   if (paramCount != 1) return false;
@@ -231,43 +235,38 @@ bool inputHandler(uint8_t paramCount, const Value* params, Value& result, void* 
 bool outputHandler(uint8_t paramCount, const Value* params, Value& result, void* userData) {
   if (paramCount < 1) return false;
   const uint32_t pin = params[0].uintVal;
-  const uint32_t value = params[1].uintVal;
-  if (pin >= 0 && pin < 6) {
-    if (paramCount == 2) {
-      if (value) {
-        bitSet(device.output, pin);
-      } else {
-        bitClear(device.output, pin);
-      }
-      setOutput();
-      onSendDevice();
+  if (pin >= 6) return false;
+
+  if (paramCount >= 2) {
+    const uint32_t value = params[1].uintVal;
+    if (value) {
+      bitSet(device.output, pin);
+    } else {
+      bitClear(device.output, pin);
     }
-    result.type = VAL_UINT;
-    result.intVal = bitRead(device.output, pin);
-    return true;
+    setOutput();
+    onSendDevice();
   }
-  return false;
+
+  result.type = VAL_UINT;
+  result.intVal = bitRead(device.output, pin);
+  return true;
 }
 
-// void sendNotification(const char* text) {
-//   message.type = MESSAGE_TYPE_NOTIFICATION;
-//   memset(message.text, 0, sizeof(message.text));
-//   strcpy(message.text, text);
-//   wsSendAll((uint8_t*)&message, sizeof(message));
-// }
-
 void setupDevice() {
+  scriptRunner.setDataProvider(dataProvider);
+  scriptRunner.registerFunction("http", httpHandler);
   scriptRunner.registerFunction("input", inputHandler);
   scriptRunner.registerFunction("output", outputHandler);
 
   Wire.begin(GPIO_SDA, GPIO_SCL);
-  // setModbusSetup();
   setOutput();
   getDate();
   getOutput();
   getGPIO();
+
   for (uint8_t i = 0; i < PORTS_LEN; i++) {
-    uint8_t valueNew = (device.input & (1 << i)) != 0;
+    const uint8_t valueNew = (device.input & (1 << i)) != 0;
     portsDevice[i].value = valueNew;
     portsDevice[i].valueOld = valueNew;
     portsDevice[i].count = 0;
@@ -276,9 +275,16 @@ void setupDevice() {
 }
 
 void setupFirstDevice() {
-  if (!loadConfigBlock(DEF_PATH_CONFIG, (uint8_t*)&device, sizeof(device))) {
-    saveConfigBlock(DEF_PATH_CONFIG, (uint8_t*)&device, sizeof(device));
+  const TConfigStatus status =
+      configStore.read("device", &device, sizeof(device), CONFIG_DEVICE_VERSION);
+  if (status == TConfigStatus::Ok) {
+    device.command = 0;
   }
+#if VUESP_LOG_LEVEL >= 1
+  else if (status != TConfigStatus::NotFound) {
+    Serial.printf("[config] device read: %d\n", (int)status);
+  }
+#endif
 }
 
 void loopDevice(uint32_t now) {
@@ -291,25 +297,32 @@ void loopDevice(uint32_t now) {
     lastTimeDevice = now;
     getData();
     onSendDevice();
-    // sendNotification("Test");
+  }
+
+  if (tasks[KEY_BUFFER]) {
+    wsSendAll((uint8_t*)&myBuffer, sizeof(myBuffer));
+    tasks[KEY_BUFFER] = 0;
   }
 
   if (tasks[KEY_DEVICE]) {
-    tasks[KEY_DEVICE] = 0;
-
     if (device.command == 1) {
       setDate(device.now);
     } else if (device.command == 2) {
       setOutput();
-    } else if (device.command == 4) {
-      device.command = 0;
-      writeFile(DEF_PATH_CONFIG, (uint8_t*)&device, sizeof(device));
+    } else if (device.command == 4 || device.command == CMD_SAVE) {
+      const TConfigStatus status =
+          configStore.write("device", &device, sizeof(device), CONFIG_DEVICE_VERSION);
+#if VUESP_LOG_LEVEL >= 1
+      if (status != TConfigStatus::Ok) {
+        Serial.printf("[config] device write: %d\n", (int)status);
+      }
+#endif
     } else {
       getData();
     }
-    if (device.command == COMMAND_SAVE) writeFile(DEF_PATH_CONFIG, (uint8_t*)&device, sizeof(device));
 
     device.command = 0;
+    tasks[KEY_DEVICE] = 0;
     onSendDevice();
-  };
+  }
 }
