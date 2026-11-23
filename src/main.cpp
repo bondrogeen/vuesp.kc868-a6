@@ -7,6 +7,7 @@
 #include "./gpio/gpio.h"
 #include "./init/init.h"
 #include "./modbus/modbus.h"
+#include "./rs232/rs232.h"
 #include "./runner/runner.h"
 #include "./setup/serialSetup.h"
 #include "./tasks/tasks.h"
@@ -54,6 +55,7 @@ void setupDelay() {
   setupGPIO();
   setupDevice();
   setupModbus();
+  setupRs232();
   setupServer();
   setupDiscovery();
   setupRunner();
@@ -80,6 +82,7 @@ void loop() {
     loopGPIO(now);
     loopDevice(now);
     loopModbus(now);
+    loopRs232(now);
     loopWiFi(now);
     loopRunner(now);
     loopSerialSetup();

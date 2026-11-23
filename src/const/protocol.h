@@ -22,6 +22,7 @@ enum key : uint8_t {
   KEY_MODBUS = 15,
   KEY_MODBUSPROFILE = 16,
   KEY_MODBUSRAW = 17,
+  KEY_RS232 = 18,
   KEY_END
 };
 
@@ -53,6 +54,7 @@ enum portMode : uint16_t {
 #define MODBUS_DEVICES_MAX 8
 #define MODBUS_POINTS_MAX 64
 #define MODBUS_VARS_MAX 32
+#define RS232_BUFFER 128
 
 #pragma pack(push, 1)
 
@@ -314,6 +316,24 @@ struct Modbus {
   char text[16];
   ModbusVarValue vars[32];
 };
+struct Rs232 {
+  uint8_t key;
+  uint8_t command;
+  uint8_t status;
+  uint8_t enabled;
+  uint32_t baud;
+  uint8_t dataBits;
+  uint8_t parity;
+  uint8_t stopBits;
+  uint8_t flags;
+  uint32_t rxCount;
+  uint32_t txCount;
+  uint16_t rxLen;
+  uint16_t txLen;
+  uint8_t rx[128];
+  uint8_t tx[128];
+};
+
 #pragma pack(pop)
 
 #include "protocol.generated.h"

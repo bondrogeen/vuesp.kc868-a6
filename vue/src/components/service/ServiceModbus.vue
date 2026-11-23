@@ -293,7 +293,7 @@
         </template>
         <template #target="{ item }">
           <div class="flex flex-col">
-            <span :class="item.group ? 'font-semibold' : ''">{{ item.target }}</span>
+            <span>{{ item.target }}</span>
           </div>
         </template>
       </VTable>
@@ -1385,7 +1385,6 @@ const slaveMapRows = computed<IMapItem[]>(() => {
         access: point.flags & 4 ? 'R/W' : 'R',
         child: true,
         pointIndex: index,
-        varIndex: point.var,
         notApplied: !isPointApplied(index),
       };
     })
@@ -1448,7 +1447,6 @@ const buildMapDetails = (item: IMapItem): IMapDetails => {
 };
 
 const onMapClick = (item: IMapItem) => {
-  if (item.group) return;
   mapDetails.value = buildMapDetails(item);
 };
 

@@ -21,7 +21,9 @@ dist/
 # Firmware builds
 /firmware/*.bin
 /firmware/*.elf
-/data/
+/data/*
+!/data/tmp/
+!/data/tmp/.keep
 /mklittlefs
 src/tests/test_runner
 

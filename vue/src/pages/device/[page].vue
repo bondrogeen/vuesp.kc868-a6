@@ -11,6 +11,7 @@ import ServiceGPIO from '@/components/service/ServiceGPIO.vue';
 import ServiceStorage from '@/components/service/ServiceStorage.vue';
 import ServiceSettings from '@/components/service/ServiceSettings.vue';
 import ServiceModbus from '@/components/service/ServiceModbus.vue';
+import ServiceRs232 from '@/components/service/ServiceRs232.vue';
 
 const appStore = useAppStore();
 const { menu } = storeToRefs(appStore);
@@ -47,6 +48,8 @@ onMounted(() => {
       <ServiceGPIO v-if="isPage('gpio')" />
 
       <ServiceModbus v-if="isPage('modbus')" />
+
+      <ServiceRs232 v-if="isPage('rs232')" />
     </template>
   </div>
 </template>

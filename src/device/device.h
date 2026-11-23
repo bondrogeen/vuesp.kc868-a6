@@ -25,6 +25,9 @@
 #define GPIO_IO13 13
 #define GPIO_IO12 12
 
+#define RS232_RX_PIN 16
+#define RS232_TX_PIN 17
+
 #define ADDRESS_RTC 0x68
 #define ADDRESS_OUTPUT 0x24
 #define ADDRESS_INPUT 0x22

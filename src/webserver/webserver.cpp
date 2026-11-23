@@ -2,6 +2,7 @@
 
 #include "../modbus/modbus.h"
 #include "../modbus/modbus_raw.h"
+#include "../rs232/rs232.h"
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/esp");
@@ -106,6 +107,7 @@ static void handleWsMessage(const uint8_t* data, size_t len, uint32_t clientId) 
   onWsEventModbus(&info, (uint8_t*)data, len, clientId, task);
   onWsEventModbusProfile(&info, (uint8_t*)data, len, clientId, task);
   onWsEventModbusRaw(&info, (uint8_t*)data, len, clientId, task);
+  onWsEventRs232(&info, (uint8_t*)data, len, clientId, task);
 }
 
 static void handleWsFragment(const AwsFrameInfo* info, const uint8_t* data, size_t len, uint32_t clientId) {

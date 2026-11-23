@@ -30,6 +30,11 @@
     "path": "/device/gpio/"
   },
   {
+    "name": "menu.rs232",
+    "icon": "plug",
+    "path": "/device/rs232/"
+  },
+  {
     "name": "menu.modbus",
     "icon": "plug",
     "path": "/device/modbus/"

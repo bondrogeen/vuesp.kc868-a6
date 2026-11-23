@@ -20,6 +20,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     ServiceGPIO: typeof import('./src/components/service/ServiceGPIO.vue')['default']
     ServiceModbus: typeof import('./src/components/service/ServiceModbus.vue')['default']
+    ServiceRs232: typeof import('./src/components/service/ServiceRs232.vue')['default']
     ServiceSettings: typeof import('./src/components/service/ServiceSettings.vue')['default']
     ServiceStorage: typeof import('./src/components/service/ServiceStorage.vue')['default']
     VIcons: typeof import('./src/components/ui/icons/VIcons.vue')['default']

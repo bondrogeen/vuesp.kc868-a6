@@ -5,7 +5,7 @@ import type { TKey } from '@/generated/protocol';
 import { useAppStore } from './AppStore.ts';
 
 import type { TMessage } from '@/types';
-import type { IWebSocketStore, IPort, IDallas, IProgress, IMessage, IDiscovery, IInfo, IDevice, IBuffer, IEvent, IModbus, IModbusProfile, IModbusRaw, IModbusVarView, ISettings } from '@/types';
+import type { IWebSocketStore, IPort, IDallas, IProgress, IMessage, IDiscovery, IInfo, IDevice, IBuffer, IEvent, IModbus, IModbusProfile, IModbusRaw, IModbusVarView, IRs232, ISettings } from '@/types';
 
 const initialState = (): IWebSocketStore => ({
   main: {
@@ -36,6 +36,22 @@ const initialState = (): IWebSocketStore => ({
     device: { command: 0, input: 0, output: 255, analog: 0, now: 0, list: 0, message: '' },
     buffer: { empty: 0, head: 0, tail: 0, count: 0, data: [] },
     event: { command: 0, subCommand: 0, value1: 0, value2: 0, name: '' },
+    rs232: {
+      command: 0,
+      status: 0,
+      enabled: 1,
+      baud: 9600,
+      dataBits: 8,
+      parity: 0,
+      stopBits: 1,
+      flags: 0,
+      rxCount: 0,
+      txCount: 0,
+      rxLen: 0,
+      txLen: 0,
+      rx: [],
+      tx: [],
+    },
     modbus: {
       command: 0,
       role: 0,
@@ -143,6 +159,9 @@ export const useWebSocketStore = defineStore('webSocketStore', {
     SET_DEVICE(value: IDevice) {
       this.main.device = value;
     },
+    SET_RS232(value: IRs232) {
+      this.main.rs232 = value;
+    },
     SET_MODBUS(value: IModbus) {
       this.main.modbus = value;
 
@@ -236,6 +255,9 @@ export const useWebSocketStore = defineStore('webSocketStore', {
           return;
         case KEY.DEVICE:
           this.SET_DEVICE(object);
+          return;
+        case KEY.RS232:
+          this.SET_RS232(object);
           return;
         case KEY.MODBUS:
           this.SET_MODBUS(object);

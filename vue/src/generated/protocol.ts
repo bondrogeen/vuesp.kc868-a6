@@ -3,7 +3,7 @@
 export const PROTOCOL_VERSION = 2;
 
 export const ENUMS = {
-  KEY: { INIT: 0, SETTINGS: 1, INFO: 2, PING: 3, SCAN: 4, PROGRESS: 5, FILES: 6, REBOOT: 7, EVENT: 8, PORT: 9, MESSAGE: 10, DALLAS: 11, BUFFER: 12, DEVICE: 13, DISCOVERY: 14, MODBUS: 15, MODBUSPROFILE: 16, MODBUSRAW: 17 },
+  KEY: { INIT: 0, SETTINGS: 1, INFO: 2, PING: 3, SCAN: 4, PROGRESS: 5, FILES: 6, REBOOT: 7, EVENT: 8, PORT: 9, MESSAGE: 10, DALLAS: 11, BUFFER: 12, DEVICE: 13, DISCOVERY: 14, MODBUS: 15, MODBUSPROFILE: 16, MODBUSRAW: 17, RS232: 18 },
   CMD: { NONE: 0, GET: 1, SET: 2, GET_ALL: 3, CHANGE: 4, RESTORE: 5, READ: 6, WRITE: 7, SAVE: 254 },
   PORT: { NONE: 0, INPUT: 1, INPUT_PULLUP: 2, OUTPUT: 4, OUTPUT_OPEN_DRAIN: 8, PWM: 16, ONEWIRE: 32, ADC: 64, DAC: 128 },
 } as const;
@@ -253,6 +253,23 @@ export const STRUCTS = {
     { name: 'value', type: 'double' },
     { name: 'text', type: 'char', dimensions: [16] },
     { name: 'vars', type: 'ModbusVarValue', dimensions: [32] },
+  ],
+  Rs232: [
+    { name: 'key', type: 'uint8_t' },
+    { name: 'command', type: 'uint8_t' },
+    { name: 'status', type: 'uint8_t' },
+    { name: 'enabled', type: 'uint8_t' },
+    { name: 'baud', type: 'uint32_t' },
+    { name: 'dataBits', type: 'uint8_t' },
+    { name: 'parity', type: 'uint8_t' },
+    { name: 'stopBits', type: 'uint8_t' },
+    { name: 'flags', type: 'uint8_t' },
+    { name: 'rxCount', type: 'uint32_t' },
+    { name: 'txCount', type: 'uint32_t' },
+    { name: 'rxLen', type: 'uint16_t' },
+    { name: 'txLen', type: 'uint16_t' },
+    { name: 'rx', type: 'uint8_t', dimensions: [128] },
+    { name: 'tx', type: 'uint8_t', dimensions: [128] },
   ],
 } as const;
 
@@ -514,6 +531,24 @@ export interface IModbus {
   vars: IModbusVarValue[];
 }
 
+export interface IRs232 {
+  key?: number;
+  command: TCommand;
+  status: number;
+  enabled: number;
+  baud: number;
+  dataBits: number;
+  parity: number;
+  stopBits: number;
+  flags: number;
+  rxCount: number;
+  txCount: number;
+  rxLen: number;
+  txLen: number;
+  rx: number[];
+  tx: number[];
+}
+
 export interface IMessageMap {
   INIT: IInit;
   SETTINGS: ISettings;
@@ -532,6 +567,7 @@ export interface IMessageMap {
   MODBUS: IModbus;
   MODBUSPROFILE: IModbusProfile;
   MODBUSRAW: IModbusRaw;
+  RS232: IRs232;
 }
 
 export type TMessage =
@@ -551,4 +587,5 @@ export type TMessage =
   | { key: typeof KEY.DISCOVERY; object: IDiscovery }
   | { key: typeof KEY.MODBUS; object: IModbus }
   | { key: typeof KEY.MODBUSPROFILE; object: IModbusProfile }
-  | { key: typeof KEY.MODBUSRAW; object: IModbusRaw };
+  | { key: typeof KEY.MODBUSRAW; object: IModbusRaw }
+  | { key: typeof KEY.RS232; object: IRs232 };

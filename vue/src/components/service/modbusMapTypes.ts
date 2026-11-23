@@ -8,9 +8,7 @@ export interface IMapItem {
   count: number;
   access: string;
   child?: boolean;
-  group?: boolean;
   pointIndex?: number;
-  varIndex?: number;
   notApplied?: boolean;
 }
 
