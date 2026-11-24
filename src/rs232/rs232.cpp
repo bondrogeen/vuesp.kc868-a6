@@ -2,6 +2,7 @@
 
 #include "../config/ConfigStore.h"
 #include "../device/device.h"
+#include "../setup/serialSetup.h"
 #include "../tasks/tasks.h"
 #include "../webserver/webserver.h"
 
@@ -58,8 +59,9 @@ static void saveConfig() {
 
 static void startUart() {
   if (uartStarted) Serial2.end();
+  // Do not call pinMode() on the UART RX pin after Serial2.begin():
+  // it overrides the GPIO matrix route and RX stops working.
   Serial2.begin(rs232.baud, serialConfig(), RS232_RX_PIN, RS232_TX_PIN);
-  pinMode(RS232_RX_PIN, INPUT_PULLUP);
   uartStarted = true;
   rs232.status = 1;
   rxLen = 0;
@@ -112,6 +114,34 @@ void onWsEventRs232(void* arg, uint8_t* data, size_t len, uint32_t clientId, uin
   tasks[KEY_RS232] = 1;
 }
 
+// Serial commands on the RS232 port: while a line starts with the VUESP: prefix
+// the device answers it on the same port, everything else stays transparent.
+static char vuespLine[64];
+static uint8_t vuespLen = 0;
+static bool vuespCandidate = true;
+
+static void feedVuespCommand(uint8_t value) {
+  if (value == '\r' || value == '\n') {
+    if (vuespCandidate && vuespLen > 6) {
+      vuespLine[vuespLen] = '\0';
+      handleVuespCommand(vuespLine, Serial2);
+    }
+    vuespLen = 0;
+    vuespCandidate = true;
+    return;
+  }
+
+  if (!vuespCandidate) return;
+  if (vuespLen >= sizeof(vuespLine) - 1) {
+    vuespCandidate = false;
+    vuespLen = 0;
+    return;
+  }
+
+  vuespLine[vuespLen++] = (char)value;
+  if (vuespLen <= 6 && strncmp(vuespLine, "VUESP:", vuespLen) != 0) vuespCandidate = false;
+}
+
 void setupRs232() {
   const TConfigStatus status =
       configStore.read("rs232", &rs232, sizeof(rs232), CONFIG_RS232_VERSION);
@@ -142,6 +172,7 @@ void loopRs232(uint32_t now) {
     while (Serial2.available() > 0 && chunk < 64) {
       const int value = Serial2.read();
       if (value < 0) break;
+      feedVuespCommand((uint8_t)value);
       if (rxLen < sizeof(rxBuffer)) {
         rxBuffer[rxLen++] = (uint8_t)value;
       }

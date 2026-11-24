@@ -4,5 +4,6 @@
 #include <Arduino.h>
 
 void loopSerialSetup();
+void handleVuespCommand(char* command, Print& out);
 
 #endif

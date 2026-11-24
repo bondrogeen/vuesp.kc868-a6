@@ -15,34 +15,34 @@
 static char serialLine[201];
 static uint16_t serialLen = 0;
 
-static void printWifiScan() {
-  Serial.println(F("@VUESP:SCAN:BEGIN"));
+static void printWifiScan(Print& out) {
+  out.println(F("@VUESP:SCAN:BEGIN"));
 
   auto oldMode = WiFi.getMode();
   WiFi.mode(WIFI_AP_STA);
 
   int count = WiFi.scanNetworks();
   if (count < 0) {
-    Serial.println(F("@VUESP:SCAN:ERROR"));
+    out.println(F("@VUESP:SCAN:ERROR"));
   } else {
     for (int i = 0; i < count; i++) {
       char ssid[33];
       WiFi.SSID(i).toCharArray(ssid, sizeof(ssid));
       textSanitizeSsid(ssid);
       int secure = WiFi.encryptionType(i) != 0 ? 1 : 0;
-      Serial.printf("@VUESP:WIFI:%s\t%d\t%d\n", ssid, WiFi.RSSI(i), secure);
+      out.printf("@VUESP:WIFI:%s\t%d\t%d\n", ssid, WiFi.RSSI(i), secure);
     }
   }
 
   WiFi.scanDelete();
   WiFi.mode(oldMode);
-  Serial.println(F("@VUESP:SCAN:END"));
+  out.println(F("@VUESP:SCAN:END"));
 }
 
-static void setWifi(const char* command) {
+static void setWifi(const char* command, Print& out) {
   const char* first = strchr(command, '\t');
   if (!first) {
-    Serial.println(F("@VUESP:SET:ERROR"));
+    out.println(F("@VUESP:SET:ERROR"));
     return;
   }
 
@@ -53,7 +53,7 @@ static void setWifi(const char* command) {
   char pass[32];
   if (!textCopyTrimmed(ssid, sizeof(ssid), first + 1, second ? second : commandEnd) ||
       !textCopyRaw(pass, sizeof(pass), second ? second + 1 : commandEnd, commandEnd) || !ssid[0]) {
-    Serial.println(F("@VUESP:SET:ERROR"));
+    out.println(F("@VUESP:SET:ERROR"));
     return;
   }
 
@@ -65,25 +65,28 @@ static void setWifi(const char* command) {
   settings.wifiDhcp = 1;
 
   if (!saveSettings(settings)) {
-    Serial.println(F("@VUESP:SET:ERROR"));
+    out.println(F("@VUESP:SET:ERROR"));
     return;
   }
 
-  Serial.println(F("@VUESP:SET:OK"));
+  out.println(F("@VUESP:SET:OK"));
   delay(250);
   reboot();
 }
 
-static void handleSerialLine(char* command) {
+void handleVuespCommand(char* command, Print& out) {
   textTrim(command);
   if (strncmp(command, "VUESP:", 6) != 0) return;
 
   if (strcmp(command, "VUESP:PING") == 0) {
-    Serial.println(F("@VUESP:PONG"));
+    out.println(F("@VUESP:PONG"));
+  } else if (strcmp(command, "VUESP:INFO") == 0) {
+    out.printf("@VUESP:INFO:%s,%u,%08X,%s,%s\n", DEF_DEVICE_NAME, (unsigned)infoFS.board, (unsigned)infoFS.id,
+          WiFi.localIP().toString().c_str(), WiFi.softAPIP().toString().c_str());
   } else if (strcmp(command, "VUESP:SCAN") == 0) {
-    printWifiScan();
+    printWifiScan(out);
   } else if (strncmp(command, "VUESP:SET\t", 10) == 0) {
-    setWifi(command);
+    setWifi(command, out);
   }
 }
 
@@ -93,7 +96,7 @@ void loopSerialSetup() {
     if (value == '\n' || value == '\r') {
       if (serialLen) {
         serialLine[serialLen] = '\0';
-        handleSerialLine(serialLine);
+        handleVuespCommand(serialLine, Serial);
         serialLen = 0;
       }
     } else if (serialLen < sizeof(serialLine) - 1) {

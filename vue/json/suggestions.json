@@ -25,22 +25,22 @@
     "type": "func",
     "insert": "output(${0}, ${1})",
     "detail": "output(pin:number, value?:number) => value:number",
-    "description": "Read or write a relay bit (pin 0–5). 0 turns the relay on."
+    "description": "Read or write a relay bit (pin 0–5). 0 turns the relay on, 1 turns it off."
   },
   {
     "label": "port_c",
     "type": "event",
-    "detail": "click on IN1–IN6<br>$e0=input:number<br>$e1=value:number<br>$e2=count:number"
+    "detail": "click on IN1–IN6<br>$e0=input index:number (0–5)<br>$e1=value:number<br>$e2=count:number"
   },
   {
     "label": "port_l",
     "type": "event",
-    "detail": "long press on IN1–IN6<br>$e0=input:number<br>$e1=value:number"
+    "detail": "long press on IN1–IN6<br>$e0=input index:number (0–5)<br>$e1=value:number"
   },
   {
     "label": "port_r",
     "type": "event",
-    "detail": "repeat while held on IN1–IN6<br>$e0=input:number<br>$e1=value:number"
+    "detail": "repeat while held on IN1–IN6<br>$e0=input index:number (0–5)<br>$e1=value:number"
   },
   {
     "label": "modbus",

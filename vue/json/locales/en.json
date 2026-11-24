@@ -100,7 +100,7 @@
     "gpio": "GPIO",
     "script": "Script",
     "modbus": "Modbus",
-    "rs232": "RS232"
+    "rs232": "SERIAL"
   },
   "dialog": {
     "doRestart": "Do you want to restart your device?",
@@ -427,44 +427,11 @@
     "systemRegisterNote": "Live hex for system registers depends on the device state. The read frame is ready to copy."
   },
   "rs232": {
-    "subtitle": "RS232 · UART2 · GPIO16/17",
-    "enabled": "Port open",
-    "open": "Open",
-    "close": "Close",
     "baud": "Baud rate",
-    "dataBits": "Data bits",
     "parity": "Parity",
     "parityNone": "None",
     "parityEven": "Even",
     "parityOdd": "Odd",
-    "stopBits": "Stop bits",
-    "status": "Status",
-    "closed": "Closed",
-    "opened": "Open",
-    "error": "Error",
-    "terminal": "Terminal",
-    "receive": "Received",
-    "transmit": "Sent",
-    "send": "Send",
-    "clear": "Clear",
-    "hex": "HEX",
-    "lineEnding": "Line ending",
-    "lineNone": "None",
-    "lineCr": "CR",
-    "lineLf": "LF",
-    "lineCrlf": "CRLF",
-    "input": "Text to send",
-    "bytes": "bytes",
-    "rx": "RX",
-    "tx": "TX",
-    "empty": "No data yet",
-    "apply": "Apply",
-    "applied": "Settings applied",
-    "reset": "Defaults",
-    "unavailable": "Port is closed",
-    "sendError": "Could not send: port is closed",
-    "hint": "Connect the peer device and use the same baud rate. TX/RX must be crossed.",
-    "unsaved": "There are unapplied changes",
-    "settings": "Settings"
+    "stopBits": "Stop bits"
   }
 }

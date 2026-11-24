@@ -1,2 +1,6 @@
-0:boot:call(4);
-4:relay_button:on('port_c');if:$e0 == 3;$f0=var('relay1');if:$f0;var('relay1',0);else;var('relay1',1);end;end;end;
+0:boot:log('KC868-A6 ready');call(4);
+1:relay1:log('relay1 ON');output(0,0);wait(1s);output(0,1);log('relay1 OFF');
+2:relay_walk:$u0=0;while:$u0<=5;log('relay',$u0);output($u0,0);wait(500ms);output($u0,1);$u0=$u0+1;end;log('walk done');
+3:input_scan:$u0=1;while:$u0<=6;log('IN',$u0,input($u0));$u0=$u0+1;end;log('scan done');
+4:input_event:on('port_c');log('IN',$e0+1,'value',$e1,'count',$e2);end;
+5:relay_toggle:on('port_c');if:$e0==0;$u0=!$u0;$u1=$u0?0:1;output(0,$u1);log('relay1',$u0);end;end;

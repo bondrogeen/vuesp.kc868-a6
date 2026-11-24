@@ -43,3 +43,9 @@ yarn-error.log*
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Local agent instructions
+.opencode/
+
+# Local OpenSpec workspace
+openspec/
