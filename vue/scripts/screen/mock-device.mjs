@@ -81,6 +81,103 @@ const COMMAND = {
   GPIO_SAVE: 254,
 };
 
+// vuesp-struct packs fixed-length arrays, so mock payloads must be padded up to
+// the size declared in protocol.h.
+const padTo = (items, size, empty) => Array.from({ length: size }, (_, index) => items[index] ?? empty(index));
+
+const modbusRole = Number(process.env.MOCK_MODBUS_ROLE ?? 2);
+
+const modbusState = {
+  role: modbusRole,
+  address: 1,
+  baud: 9600,
+  parity: 0,
+  stopBits: 1,
+};
+
+const modbusStatus = (now) => ({
+  role: modbusState.role,
+  command: 0,
+  address: modbusState.address,
+  baud: modbusState.baud,
+  dataBits: 8,
+  parity: modbusState.parity,
+  stopBits: modbusState.stopBits,
+  status: modbusState.role === 0 ? 0 : 1,
+  lastFunction: 3,
+  lastAddress: 0,
+  lastError: 0,
+  requests: 1284,
+  errors: 3,
+  varCount: 2,
+  updated: now,
+  point: 0,
+  ok: 1,
+  value: 23.4,
+  text: '23.4',
+  vars: padTo(
+    [
+      { var: 0, quality: 1, flags: 0, value: 23.4, text: '23.4' },
+      { var: 1, quality: 1, flags: 0, value: 51.2, text: '51.2' },
+    ],
+    32,
+    (index) => ({ var: index, quality: 0, flags: 0, value: 0, text: '' })
+  ),
+});
+
+const modbusProfile = {
+  command: 0,
+  version: 1,
+  deviceCount: 2,
+  pointCount: 6,
+  varCount: 2,
+  reserved: 0,
+  devices: padTo(
+    [
+      { id: 'meter', name: 'Energy meter', address: 1, enabled: 1, interval: 1000, timeout: 300, retries: 2 },
+      { id: 'th', name: 'Temp sensor', address: 2, enabled: 1, interval: 5000, timeout: 300, retries: 1 },
+    ],
+    8,
+    () => ({ id: '', name: '', address: 0, enabled: 0, interval: 0, timeout: 0, retries: 0 })
+  ),
+  points: padTo(
+    [
+      { device: 0, id: 'volt', name: 'Voltage', fc: 3, address: 0, type: 1, flags: 4, registers: 1, decimals: 1, scale: 1, offset: 0, unit: 'V', var: 0 },
+      { device: 0, id: 'power', name: 'Power', fc: 3, address: 1, type: 1, flags: 4, registers: 1, decimals: 0, scale: 1, offset: 0, unit: 'W', var: 1 },
+      { device: 1, id: 'temp', name: 'Temperature', fc: 4, address: 0, type: 1, flags: 4, registers: 1, decimals: 1, scale: 0.1, offset: 0, unit: '°C', var: 255 },
+      { device: 1, id: 'hum', name: 'Humidity', fc: 4, address: 1, type: 1, flags: 4, registers: 1, decimals: 0, scale: 1, offset: 0, unit: '%', var: 255 },
+      { device: 255, id: 'relay', name: 'Relay mask', fc: 3, address: 100, type: 2, flags: 0, registers: 1, decimals: 0, scale: 1, offset: 0, unit: '', var: 0 },
+      { device: 255, id: 'ain', name: 'Analog input', fc: 3, address: 102, type: 1, flags: 4, registers: 1, decimals: 0, scale: 1, offset: 0, unit: '', var: 1 },
+    ],
+    64,
+    () => ({ device: 0, id: '', name: '', fc: 0, address: 0, type: 0, flags: 0, registers: 0, decimals: 0, scale: 0, offset: 0, unit: '', var: 0 })
+  ),
+  vars: padTo(
+    [
+      { id: 'volt', name: 'Voltage', type: 1, flags: 0, unit: 'V', decimals: 1, point: 0, source: '' },
+      { id: 'power', name: 'Power', type: 1, flags: 0, unit: 'W', decimals: 0, point: 1, source: '' },
+    ],
+    32,
+    () => ({ id: '', name: '', type: 0, flags: 0, unit: '', decimals: 0, point: 0, source: '' })
+  ),
+};
+
+const modbusRaw = {
+  command: 0,
+  slave: 1,
+  function: 3,
+  address: 0,
+  length: 10,
+  autoCrc: 1,
+  request: padTo([1, 3, 0, 0, 0, 10], 64, () => 0),
+  requestLen: 6,
+  response: padTo([1, 3, 20, 0, 234, 0, 12, 0, 45, 0, 78], 64, () => 0),
+  responseLen: 11,
+  status: 0,
+  reserved: 0,
+  elapsed: 23,
+};
+
 const LIST_ALL = 0xff;
 
 const readOptional = async (path, fallback) => {
@@ -114,10 +211,14 @@ export const startMockDevice = async ({ port = 4173, silent = false, root = DEFA
   const dashboardJson = await readOptional(join(root, 'json/dashboard.json'), '[]');
   const scriptsTxt = await readOptional(join(root, 'public/scripts.txt'), '');
   const firmwareVersion = await parseFirmwareVersion(root);
-  const deviceFields = defaultJson?.struct?.structs?.Device ?? [];
+  const deviceStruct = defaultJson?.struct?.structs?.Device;
+  const deviceFields = Array.isArray(deviceStruct) ? deviceStruct : (deviceStruct?.fields ?? []);
 
   const struct = new VuespStruct();
   struct.init(defaultJson.struct);
+  const keyNames = Object.fromEntries(
+    Object.entries(defaultJson?.struct?.enums?.KEY ?? {}).map(([name, id]) => [id, name])
+  );
 
   const now = Math.floor(Date.now() / 1000);
   const deviceState = {
@@ -281,10 +382,21 @@ export const startMockDevice = async ({ port = 4173, silent = false, root = DEFA
 
     socket.on('message', (raw) => {
       const buffer = Buffer.isBuffer(raw) ? raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) : raw;
-      const message = struct.get(buffer);
+      // Key-only commands (for example PING) are a single byte and cannot be
+      // decoded as a full struct.
+      let message;
+      try {
+        message = struct.get(buffer);
+      } catch {
+        return;
+      }
       if (!message?.key) return;
 
-      switch (message.key) {
+      // vuesp-struct returns the numeric KEY value, while the handlers below
+      // are keyed by name.
+      const messageKey = keyNames[message.key] ?? message.key;
+
+      switch (messageKey) {
         case 'INFO':
           send(socket, 'INFO', deviceState.info);
           break;
@@ -318,6 +430,25 @@ export const startMockDevice = async ({ port = 4173, silent = false, root = DEFA
         case 'BUFFER':
           send(socket, 'BUFFER', deviceState.buffer);
           break;
+        case 'MODBUS': {
+          const object = message.object ?? {};
+          // CMD.SET = 2, CMD.SAVE = 254
+          if (object.command === 2 || object.command === 254) {
+            if (typeof object.role === 'number') modbusState.role = object.role;
+            if (typeof object.address === 'number') modbusState.address = object.address;
+            if (typeof object.baud === 'number') modbusState.baud = object.baud;
+            if (typeof object.parity === 'number') modbusState.parity = object.parity;
+            if (typeof object.stopBits === 'number') modbusState.stopBits = object.stopBits;
+          }
+          send(socket, 'MODBUS', modbusStatus(Math.floor(Date.now() / 1000)));
+          break;
+        }
+        case 'MODBUSPROFILE':
+          send(socket, 'MODBUSPROFILE', modbusProfile);
+          break;
+        case 'MODBUSRAW':
+          send(socket, 'MODBUSRAW', modbusRaw);
+          break;
         case 'DALLAS':
           for (const sensor of deviceState.dallas) send(socket, 'DALLAS', sensor);
           break;
@@ -350,6 +481,9 @@ export const startMockDevice = async ({ port = 4173, silent = false, root = DEFA
     send(socket, 'BUFFER', deviceState.buffer);
     sendPorts(socket, [...deviceState.ports.values()]);
     for (const sensor of deviceState.dallas) send(socket, 'DALLAS', sensor);
+    send(socket, 'MODBUS', modbusStatus(Math.floor(Date.now() / 1000)));
+    send(socket, 'MODBUSPROFILE', modbusProfile);
+    send(socket, 'MODBUSRAW', modbusRaw);
   });
 
   await new Promise((resolve, reject) => {

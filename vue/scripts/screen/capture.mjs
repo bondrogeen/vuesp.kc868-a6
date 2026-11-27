@@ -18,6 +18,7 @@ const PAGES = [
   { name: 'settings', path: '/device/settings/', file: 'settings.png' },
   { name: 'storage', path: '/device/storage/', file: 'storage.png' },
   { name: 'gpio', path: '/device/gpio/', file: 'gpio.png' },
+  { name: 'modbus', path: '/device/modbus/', file: 'modbus.png' },
 ];
 
 const HELP = `Vuesp screenshot tool

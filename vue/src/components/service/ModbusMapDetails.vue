@@ -5,7 +5,7 @@
         <h4 class="truncate text-sm font-semibold">{{ details.title }}</h4>
         <p v-if="details.subtitle" class="mt-1 truncate font-mono text-xs text-gray-dark-25 dark:text-gray-light-10">{{ details.subtitle }}</p>
       </div>
-      <VButton v-if="closable" type="icon" variant="ghost" :title="$t('modbus.close')" :aria-label="$t('modbus.close')" @click="emit('close')">
+      <VButton v-if="closable" size="sm" type="icon" variant="ghost" :title="$t('modbus.close')" :aria-label="$t('modbus.close')" @click="emit('close')">
         <VIcon name="close" :size="16" />
       </VButton>
     </div>
@@ -52,7 +52,7 @@
       </div>
       <div class="flex items-center gap-2">
         <code class="min-w-0 flex-auto break-all rounded-md bg-black/5 px-3 py-2 font-mono text-xs dark:bg-white/5">{{ details.readFrame }}</code>
-        <VButton type="icon" variant="outline" :title="$t('modbus.copyFrame')" :aria-label="$t('modbus.copyFrame')" @click="copy(details.readFrame)">
+        <VButton size="sm" type="icon" variant="outline" :title="$t('modbus.copyFrame')" :aria-label="$t('modbus.copyFrame')" @click="copy(details.readFrame)">
           <VIcon name="copy" :size="16" />
         </VButton>
       </div>

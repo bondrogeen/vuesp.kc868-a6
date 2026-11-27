@@ -164,7 +164,7 @@ const consoleLabels: IConsoleLabels = { usb: 'RS232', noPort: 'RS232' };
     >
       <template #header-actions>
         <div class="w-40 shrink-0">
-          <VSelect
+          <VSelect size="sm"
             hide-message
             :model-value="selectName(baudItems, baud)"
             :items="baudItems"
@@ -176,7 +176,7 @@ const consoleLabels: IConsoleLabels = { usb: 'RS232', noPort: 'RS232' };
       </template>
       <template #settings>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <VSelect
+          <VSelect size="sm"
             hide-message
             :model-value="selectName(parityItems, parity)"
             :items="parityItems"
@@ -184,7 +184,7 @@ const consoleLabels: IConsoleLabels = { usb: 'RS232', noPort: 'RS232' };
             :disabled="rs.status === 1"
             @change="onParity"
           />
-          <VSelect
+          <VSelect size="sm"
             hide-message
             :model-value="selectName(stopItems, stopBits)"
             :items="stopItems"
